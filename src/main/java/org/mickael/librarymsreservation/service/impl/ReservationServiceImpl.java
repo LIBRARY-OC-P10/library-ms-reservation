@@ -80,6 +80,9 @@ public class ReservationServiceImpl implements ReservationServiceContract {
     public void updateResaBookId(Integer bookId, Integer numberOfCopies) {
         //get list resa for this book
         List<Reservation> reservations = reservationRepository.findAllByBookId(bookId);
+        if (reservations.isEmpty()){
+            return;
+        }
         reservations.sort(Comparator.comparing(Reservation::getPosition));
         //send mail to reservation customer
         for (int i = 0; i < numberOfCopies; i++) {
@@ -100,11 +103,15 @@ public class ReservationServiceImpl implements ReservationServiceContract {
                     reservations.get(i).getBookTitle(),
                     formatDateToMail(reservations.get(i).getEndOfPriority()));
         }
+
     }
 
     @Override
     public void updateDateResaBookId(Integer bookId, List<LocalDate> listReturnLoanDate) {
         List<Reservation> reservations = reservationRepository.findAllByBookId(bookId);
+        if (reservations.isEmpty()){
+            return;
+        }
         reservations.sort(Comparator.comparing(Reservation::getPosition));
         //change soon to return date
         for (int i = 0; i < reservations.size(); i++) {
@@ -127,7 +134,9 @@ public class ReservationServiceImpl implements ReservationServiceContract {
         //modify list resa
         //get new list of all reservations for the book
         List<Reservation> reservations = reservationRepository.findAllByBookId(reservationToDelete.getBookId());
-
+        if (reservations.isEmpty()){
+            return;
+        }
         //set last position in the reservation list
         //Integer lastPosition = reservations.size();
         Integer deleteReservationPosition = reservationToDelete.getPosition();

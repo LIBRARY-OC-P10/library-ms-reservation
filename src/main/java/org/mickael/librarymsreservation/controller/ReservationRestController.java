@@ -4,16 +4,21 @@ import org.mickael.librarymsreservation.model.Reservation;
 import org.mickael.librarymsreservation.proxy.FeignBookProxy;
 import org.mickael.librarymsreservation.proxy.FeignLoanProxy;
 import org.mickael.librarymsreservation.service.contract.ReservationServiceContract;
+import org.mickael.librarymsreservation.utils.HandlerToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/reservations")
+@PreAuthorize("isAuthenticated()")
 public class ReservationRestController {
 
     private static final Logger logger = LoggerFactory.getLogger(ReservationRestController.class);
@@ -41,23 +46,23 @@ public class ReservationRestController {
     }
 
     @PostMapping
-    public Reservation createReservation(Reservation reservation){
-        List<LocalDate> listReturnLoanDate = feignLoanProxy.getSoonReturned(reservation.getBookId());
+    public Reservation createReservation(Reservation reservation, @RequestHeader("Authorization") String accessToken){
+        List<LocalDate> listReturnLoanDate = feignLoanProxy.getSoonReturned(reservation.getBookId(), HandlerToken.formatToken(accessToken));
         return reservationServiceContract.save(reservation, listReturnLoanDate);
     }
 
 
     @DeleteMapping("/customer/{customerId}/book/{bookId}/")
-    public void deleteReservationAfterLoan(@PathVariable Integer customerId, @PathVariable Integer bookId){
+    public void deleteReservationAfterLoan(@PathVariable Integer customerId, @PathVariable Integer bookId, @RequestHeader("Authorization") String accessToken){
         reservationServiceContract.delete(
                 reservationServiceContract.findByCustomerIdAndBookId(customerId, bookId).getId(),
-                feignLoanProxy.getSoonReturned(bookId));
+                feignLoanProxy.getSoonReturned(bookId, HandlerToken.formatToken(accessToken)));
     }
 
     @DeleteMapping("/{id}")
-    public void deleteReservationAfterTwoDays(@PathVariable Integer id){
+    public void deleteReservationAfterTwoDays(@PathVariable Integer id, @RequestHeader("Authorization") String accessToken){
         reservationServiceContract.delete(id,
-                feignLoanProxy.getSoonReturned(reservationServiceContract.findById(id).getBookId()));
+                feignLoanProxy.getSoonReturned(reservationServiceContract.findById(id).getBookId(), HandlerToken.formatToken(accessToken)));
     }
 
     @GetMapping("/customer/{customerId}/book/{bookId}/")
@@ -66,14 +71,16 @@ public class ReservationRestController {
     }
 
     @PutMapping("/book/{bookId}")
-    public void updateReservation(@PathVariable Integer bookId){
-        reservationServiceContract.updateResaBookId(bookId,
-                feignBookProxy.numberOfCopyAvailableForBook(bookId));
+    public void updateReservation(@PathVariable Integer bookId, @RequestHeader("Authorization") String accessToken){
+        System.out.println("reservation reservation update : " + accessToken);
+        Integer nb = feignBookProxy.numberOfCopyAvailableForBook(bookId, HandlerToken.formatToken(accessToken));
+        System.out.println("nb : " + nb);
+        reservationServiceContract.updateResaBookId(bookId,nb);
     }
 
     @PutMapping("/book/{bookId}/refresh")
-    public void updateDateReservation(@PathVariable Integer bookId){
-        reservationServiceContract.updateDateResaBookId(bookId, feignLoanProxy.getSoonReturned(bookId));
+    public void updateDateReservation(@PathVariable Integer bookId, @RequestHeader("Authorization") String accessToken){
+        reservationServiceContract.updateDateResaBookId(bookId, feignLoanProxy.getSoonReturned(bookId, HandlerToken.formatToken(accessToken)));
     }
 
 
