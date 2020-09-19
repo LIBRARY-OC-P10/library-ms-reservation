@@ -72,10 +72,7 @@ public class ReservationRestController {
 
     @PutMapping("/book/{bookId}")
     public void updateReservation(@PathVariable Integer bookId, @RequestHeader("Authorization") String accessToken){
-        System.out.println("reservation reservation update : " + accessToken);
-        Integer nb = feignBookProxy.numberOfCopyAvailableForBook(bookId, HandlerToken.formatToken(accessToken));
-        System.out.println("nb : " + nb);
-        reservationServiceContract.updateResaBookId(bookId,nb);
+        reservationServiceContract.updateResaBookId(bookId,feignBookProxy.numberOfCopyAvailableForBook(bookId, HandlerToken.formatToken(accessToken)));
     }
 
     @PutMapping("/book/{bookId}/refresh")
