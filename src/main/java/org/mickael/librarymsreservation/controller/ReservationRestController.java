@@ -39,6 +39,12 @@ public class ReservationRestController {
         return reservations;
     }
 
+    @GetMapping("/book/{bookId}")
+    public List<Reservation> getReservationsByBookId(@PathVariable Integer bookId){
+        List<Reservation> reservations = reservationServiceContract.findAllByBookId(bookId);
+        return reservations;
+    }
+
     @GetMapping("/customer/{customerId}")
     public List<Reservation> getCustomerReservations(@PathVariable Integer customerId){
         List<Reservation> reservations = reservationServiceContract.findAllByCustomerId(customerId);

@@ -18,6 +18,7 @@ public interface ReservationServiceContract {
     void delete(Integer id, List<LocalDate> localDateList);
 
     List<Reservation> findAllByCustomerId(Integer customerId);
+    List<Reservation> findAllByBookId(Integer bookId);
 
     boolean checkIfReservationExistForCustomerIdAndBookId(Integer customerId, Integer bookId);
     Reservation findByCustomerIdAndBookId(Integer customerId, Integer bookId);

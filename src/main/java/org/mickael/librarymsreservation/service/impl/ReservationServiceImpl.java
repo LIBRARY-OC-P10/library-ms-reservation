@@ -66,10 +66,14 @@ public class ReservationServiceImpl implements ReservationServiceContract {
         }
 
         reservationToSave.setCreationReservationDate(LocalDateTime.now());
-        reservationToSave.setBookId(reservation.getBookId());
-        reservationToSave.setCustomerId(reservation.getCustomerId());
-        reservationToSave.setPosition(lastPosition + 1);
         reservationToSave.setSoonDisponibilityDate(listReturnLoanDate.get(lastPosition));
+        reservationToSave.setCustomerId(reservation.getCustomerId());
+        reservationToSave.setCustomerEmail(reservation.getCustomerEmail());
+        reservationToSave.setCustomerFirstname(reservation.getCustomerFirstname());
+        reservationToSave.setCustomerLastname(reservation.getCustomerLastname());
+        reservationToSave.setBookId(reservation.getBookId());
+        reservationToSave.setBookTitle(reservation.getBookTitle());
+        reservationToSave.setPosition(lastPosition + 1);
 
         return reservationRepository.save(reservationToSave);
     }
@@ -159,6 +163,11 @@ public class ReservationServiceImpl implements ReservationServiceContract {
     @Override
     public List<Reservation> findAllByCustomerId(Integer customerId) {
         return reservationRepository.findAllByCustomerId(customerId);
+    }
+
+    @Override
+    public List<Reservation> findAllByBookId(Integer bookId) {
+        return reservationRepository.findAllByBookId(bookId);
     }
 
 
