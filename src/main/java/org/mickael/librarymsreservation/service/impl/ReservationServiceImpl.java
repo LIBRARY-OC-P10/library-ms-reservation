@@ -45,7 +45,7 @@ public class ReservationServiceImpl implements ReservationServiceContract {
     }
 
     @Override
-    public Reservation save(Reservation reservation, List<LocalDate> listReturnLoanDate) {
+    public Reservation save(Reservation reservation, List<LocalDate> listReturnLoanDate, Integer numberOfCopies) {
         Reservation reservationToSave = new Reservation();
 
         //check if the customer already had a reservation
@@ -59,14 +59,25 @@ public class ReservationServiceImpl implements ReservationServiceContract {
 
         //set last position in the reservation list
         Integer lastPosition;
-        if (reservations.isEmpty() || (reservations == null) ){
+        if (reservations.isEmpty()){
             lastPosition = 0;
         } else {
             lastPosition = reservations.size();
         }
-
+        if (listReturnLoanDate.isEmpty()){
+            reservationToSave.setSoonDisponibilityDate(LocalDate.now());
+        } else {
+            reservationToSave.setSoonDisponibilityDate(listReturnLoanDate.get(lastPosition));
+        }
+        if(reservations.isEmpty() || reservations.size()<= numberOfCopies){
+            if ((LocalDate.now().getDayOfWeek() == DayOfWeek.SATURDAY)
+                        || (LocalDate.now().getDayOfWeek() == DayOfWeek.SUNDAY)){
+                reservationToSave.setEndOfPriority(LocalDate.now().plusDays(4));
+            } else {
+                reservationToSave.setEndOfPriority(LocalDate.now().plusDays(2));
+            }
+        }
         reservationToSave.setCreationReservationDate(LocalDateTime.now());
-        reservationToSave.setSoonDisponibilityDate(listReturnLoanDate.get(lastPosition));
         reservationToSave.setCustomerId(reservation.getCustomerId());
         reservationToSave.setCustomerEmail(reservation.getCustomerEmail());
         reservationToSave.setCustomerFirstname(reservation.getCustomerFirstname());
@@ -74,6 +85,15 @@ public class ReservationServiceImpl implements ReservationServiceContract {
         reservationToSave.setBookId(reservation.getBookId());
         reservationToSave.setBookTitle(reservation.getBookTitle());
         reservationToSave.setPosition(lastPosition + 1);
+
+        //send mail
+/*        sendPreConfiguredMail(
+                reservationToSave.getCustomerEmail(),
+                reservationToSave.getCustomerFirstname(),
+                reservationToSave.getCustomerLastname(),
+                formatDateTimeToMail(reservationToSave.getCreationReservationDate()),
+                reservationToSave.getBookTitle(),
+                formatDateToMail(reservationToSave.getEndOfPriority()));*/
 
         return reservationRepository.save(reservationToSave);
     }
@@ -84,12 +104,12 @@ public class ReservationServiceImpl implements ReservationServiceContract {
     public void updateResaBookId(Integer bookId, Integer numberOfCopies) {
         //get list resa for this book
         List<Reservation> reservations = reservationRepository.findAllByBookId(bookId);
-        if (reservations.isEmpty()){
+/*        if (reservations.isEmpty()){
             return;
-        }
+        }*/
         reservations.sort(Comparator.comparing(Reservation::getPosition));
         //send mail to reservation customer
-        for (int i = 0; i < numberOfCopies; i++) {
+        for (int i = 0; i < reservations.size(); i++) {
             //set end resa date
             if ((LocalDate.now().getDayOfWeek() == DayOfWeek.SATURDAY)
                         || (LocalDate.now().getDayOfWeek() == DayOfWeek.SUNDAY)){

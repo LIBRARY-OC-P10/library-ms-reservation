@@ -17,6 +17,9 @@ public interface FeignBookProxy {
     @GetMapping("/api/copies/available-number/book/{bookId}")
     Integer numberOfCopyAvailableForBook(@PathVariable("bookId") Integer bookId, @RequestHeader("Authorization") String accessToken);
 
+    @GetMapping("/api/copies/exist-number/book/{bookId}")
+    Integer numberOfCopyForBook(@PathVariable("bookId") Integer bookId, @RequestHeader("Authorization") String accessToken);
+
 /*
     @GetMapping("/api/books/{id}")
     Book retrieveBook(@PathVariable("id") Integer id);
