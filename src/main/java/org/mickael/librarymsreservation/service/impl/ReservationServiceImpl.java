@@ -14,10 +14,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class ReservationServiceImpl implements ReservationServiceContract {
@@ -40,8 +37,12 @@ public class ReservationServiceImpl implements ReservationServiceContract {
     }
 
     @Override
-    public Reservation findById(Integer id) {
-        return null;
+    public Reservation findById(Integer reservationId) {
+        Optional<Reservation> optionalReservation = reservationRepository.findById(reservationId);
+        if (!optionalReservation.isPresent()){
+            throw new ReservationNotFoundException("Reservation not Found");
+        }
+        return optionalReservation.get();
     }
 
     @Override
@@ -50,7 +51,7 @@ public class ReservationServiceImpl implements ReservationServiceContract {
 
         //check if the customer already had a reservation
         Reservation reservationInBdd = reservationRepository.findByCustomerIdAndBookId(reservation.getCustomerId(), reservation.getBookId());
-        if (!(reservationInBdd == null)){
+        if (reservationInBdd != null){
             throw new ReservationAlreadyExistException("Vous avez déjà une réservation pour ce livre.");
         }
 
@@ -87,6 +88,7 @@ public class ReservationServiceImpl implements ReservationServiceContract {
         reservationToSave.setPosition(lastPosition + 1);
 
         //send mail
+        //uncomment before release
 /*        sendPreConfiguredMail(
                 reservationToSave.getCustomerEmail(),
                 reservationToSave.getCustomerFirstname(),
@@ -144,8 +146,8 @@ public class ReservationServiceImpl implements ReservationServiceContract {
     }
 
     @Override
-    public void delete(Integer id, List<LocalDate> listReturnLoanDate) {
-        Optional<Reservation> optionalReservation = reservationRepository.findById(id);
+    public void delete(Integer reservationId, List<LocalDate> listReturnLoanDate) {
+        Optional<Reservation> optionalReservation = reservationRepository.findById(reservationId);
         if (!optionalReservation.isPresent()){
             throw new ReservationNotFoundException("Reservation not Found");
         }
@@ -153,31 +155,29 @@ public class ReservationServiceImpl implements ReservationServiceContract {
         Reservation reservationToDelete = optionalReservation.get();
 
         //delete
-        reservationRepository.deleteById(id);
+        reservationRepository.deleteById(reservationId);
 
         //modify list resa
         //get new list of all reservations for the book
         List<Reservation> reservations = reservationRepository.findAllByBookId(reservationToDelete.getBookId());
-        if (reservations.isEmpty()){
-            return;
-        }
-        //set last position in the reservation list
-        //Integer lastPosition = reservations.size();
-        Integer deleteReservationPosition = reservationToDelete.getPosition();
+        if (!reservations.isEmpty()){
+            //set last position in the reservation list
+            //Integer lastPosition = reservations.size();
+            Integer deleteReservationPosition = reservationToDelete.getPosition();
 
-        //change all position
-        for (Reservation reservation : reservations){
-            if (reservation.getPosition() > deleteReservationPosition){
-                reservation.setPosition(reservation.getPosition() - 1);
+            //change all position
+            for (Reservation reservation : reservations){
+                if (reservation.getPosition() > deleteReservationPosition){
+                    reservation.setPosition(reservation.getPosition() - 1);
+                }
             }
+            reservations.sort(Comparator.comparing(Reservation::getPosition));
+            //change soon to return date
+            for (int i = 0; i < reservations.size(); i++) {
+                reservations.get(i).setSoonDisponibilityDate(listReturnLoanDate.get(i));
+            }
+            reservationRepository.saveAll(reservations);
         }
-        reservations.sort(Comparator.comparing(Reservation::getPosition));
-        //change soon to return date
-        for (int i = 0; i < reservations.size(); i++) {
-            reservations.get(i).setSoonDisponibilityDate(listReturnLoanDate.get(i));
-        }
-        reservationRepository.saveAll(reservations);
-
     }
 
     @Override
