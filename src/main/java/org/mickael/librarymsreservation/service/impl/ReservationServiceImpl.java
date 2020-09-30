@@ -160,7 +160,7 @@ public class ReservationServiceImpl implements ReservationServiceContract {
         //modify list resa
         //get new list of all reservations for the book
         List<Reservation> reservations = reservationRepository.findAllByBookId(reservationToDelete.getBookId());
-        if (!reservations.isEmpty()){
+        if (!reservations.isEmpty() && !listReturnLoanDate.isEmpty()){
             //set last position in the reservation list
             //Integer lastPosition = reservations.size();
             Integer deleteReservationPosition = reservationToDelete.getPosition();

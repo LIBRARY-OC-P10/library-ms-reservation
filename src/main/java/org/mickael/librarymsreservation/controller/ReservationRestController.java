@@ -66,7 +66,7 @@ public class ReservationRestController {
     }
 
 
-    @DeleteMapping("/customer/{customerId}/book/{bookId}/")
+    @DeleteMapping("/customer/{customerId}/book/{bookId}")
     public void deleteReservationAfterLoan(@PathVariable Integer customerId, @PathVariable Integer bookId, @RequestHeader("Authorization") String accessToken){
         reservationServiceContract.delete(
                 reservationServiceContract.findByCustomerIdAndBookId(customerId, bookId).getId(),
@@ -80,7 +80,7 @@ public class ReservationRestController {
                 feignLoanProxy.getSoonReturned(bookId, HandlerToken.formatToken(accessToken)));
     }
 
-    @GetMapping("/customer/{customerId}/book/{bookId}/")
+    @GetMapping("/customer/{customerId}/book/{bookId}")
     public boolean checkIfReservationExist(@PathVariable Integer customerId, @PathVariable Integer bookId){
         return reservationServiceContract.checkIfReservationExistForCustomerIdAndBookId(customerId, bookId);
     }
