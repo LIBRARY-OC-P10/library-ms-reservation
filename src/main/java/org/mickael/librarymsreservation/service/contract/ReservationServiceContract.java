@@ -9,7 +9,7 @@ public interface ReservationServiceContract {
 
     List<Reservation> findAll();
     Reservation findById(Integer id);
-    Reservation save(Reservation reservation, List<LocalDate> localDateList, Integer numberOfCopies);
+    Reservation save(Reservation reservation, List<LocalDate> localDateList, Integer numberOfCopies, Integer copiesAvailable);
 
     void updateResaBookId(Integer bookId, Integer numberOfCopies);
 

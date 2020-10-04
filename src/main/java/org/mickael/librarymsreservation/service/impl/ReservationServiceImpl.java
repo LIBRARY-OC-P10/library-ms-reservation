@@ -46,38 +46,23 @@ public class ReservationServiceImpl implements ReservationServiceContract {
     }
 
     @Override
-    public Reservation save(Reservation reservation, List<LocalDate> listReturnLoanDate, Integer numberOfCopies) {
-        Reservation reservationToSave = new Reservation();
+    public Reservation save(Reservation reservation, List<LocalDate> listReturnLoanDate, Integer numberOfCopies, Integer copiesAvailable) {
 
         //check if the customer already had a reservation
         Reservation reservationInBdd = reservationRepository.findByCustomerIdAndBookId(reservation.getCustomerId(), reservation.getBookId());
         if (reservationInBdd != null){
             throw new ReservationAlreadyExistException("Vous avez déjà une réservation pour ce livre.");
         }
+        //max number of reservation
+        Integer maxRes = numberOfCopies * 2;
 
         //get all the reservation for the book to know the position in the list
         List<Reservation> reservations = reservationRepository.findAllByBookId(reservation.getBookId());
-
         //set last position in the reservation list
         Integer lastPosition;
-        if (reservations.isEmpty()){
-            lastPosition = 0;
-        } else {
-            lastPosition = reservations.size();
-        }
-        if (listReturnLoanDate.isEmpty()){
-            reservationToSave.setSoonDisponibilityDate(LocalDate.now());
-        } else {
-            reservationToSave.setSoonDisponibilityDate(listReturnLoanDate.get(lastPosition));
-        }
-        if(reservations.isEmpty() || reservations.size()<= numberOfCopies){
-            if ((LocalDate.now().getDayOfWeek() == DayOfWeek.SATURDAY)
-                        || (LocalDate.now().getDayOfWeek() == DayOfWeek.SUNDAY)){
-                reservationToSave.setEndOfPriority(LocalDate.now().plusDays(4));
-            } else {
-                reservationToSave.setEndOfPriority(LocalDate.now().plusDays(2));
-            }
-        }
+
+        //reservation to save
+        Reservation reservationToSave = new Reservation();
         reservationToSave.setCreationReservationDate(LocalDateTime.now());
         reservationToSave.setCustomerId(reservation.getCustomerId());
         reservationToSave.setCustomerEmail(reservation.getCustomerEmail());
@@ -85,18 +70,51 @@ public class ReservationServiceImpl implements ReservationServiceContract {
         reservationToSave.setCustomerLastname(reservation.getCustomerLastname());
         reservationToSave.setBookId(reservation.getBookId());
         reservationToSave.setBookTitle(reservation.getBookTitle());
+
+        //no reservation
+        if (reservations.isEmpty()) {
+            lastPosition = 0;
+        } else {
+            lastPosition = reservations.size();
+        }
+
         reservationToSave.setPosition(lastPosition + 1);
 
-        //send mail
-        //uncomment before release
-/*        sendPreConfiguredMail(
-                reservationToSave.getCustomerEmail(),
-                reservationToSave.getCustomerFirstname(),
-                reservationToSave.getCustomerLastname(),
-                formatDateTimeToMail(reservationToSave.getCreationReservationDate()),
-                reservationToSave.getBookTitle(),
-                formatDateToMail(reservationToSave.getEndOfPriority()));*/
-
+        //copies available
+        if (copiesAvailable > 0) {
+            //soon disponibility
+            reservationToSave.setSoonDisponibilityDate(LocalDate.now());
+            //end priority
+            if ((LocalDate.now().getDayOfWeek() == DayOfWeek.FRIDAY)
+                        || (LocalDate.now().getDayOfWeek() == DayOfWeek.SATURDAY)) {
+                reservationToSave.setEndOfPriority(LocalDate.now().plusDays(3));
+            } else {
+                reservationToSave.setEndOfPriority(LocalDate.now().plusDays(2));
+            }
+            //send mail
+            //uncomment before release
+/*            sendPreConfiguredMail(
+                    reservationToSave.getCustomerEmail(),
+                    reservationToSave.getCustomerFirstname(),
+                    reservationToSave.getCustomerLastname(),
+                    formatDateTimeToMail(reservationToSave.getCreationReservationDate()),
+                    reservationToSave.getBookTitle(),
+                    formatDateToMail(reservationToSave.getEndOfPriority()));*/
+        } else {
+            if (!listReturnLoanDate.isEmpty()){
+                //soon disponibility
+                if (lastPosition == 0){
+                    reservationToSave.setSoonDisponibilityDate(listReturnLoanDate.get(lastPosition));
+                    reservationToSave.setEndOfPriority(listReturnLoanDate.get(lastPosition).plusDays(2));
+                } else {
+                    reservationToSave.setSoonDisponibilityDate(listReturnLoanDate.get(lastPosition - 1));
+                    //end priority A VOIR
+                    reservationToSave.setEndOfPriority(listReturnLoanDate.get(lastPosition - 1).plusDays(2));
+                }
+            } else {
+                throw new ReservationNotFoundException("Reservation impossible. Contactez la bibliothèque. Merci.");
+            }
+        }
         return reservationRepository.save(reservationToSave);
     }
 
@@ -106,9 +124,7 @@ public class ReservationServiceImpl implements ReservationServiceContract {
     public void updateResaBookId(Integer bookId, Integer numberOfCopies) {
         //get list resa for this book
         List<Reservation> reservations = reservationRepository.findAllByBookId(bookId);
-/*        if (reservations.isEmpty()){
-            return;
-        }*/
+
         reservations.sort(Comparator.comparing(Reservation::getPosition));
         //send mail to reservation customer
         for (int i = 0; i < reservations.size(); i++) {

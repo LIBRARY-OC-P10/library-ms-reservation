@@ -60,8 +60,10 @@ public class ReservationRestController {
     @PostMapping
     public Reservation createReservation(@RequestBody Reservation reservation, @RequestHeader("Authorization") String accessToken){
         List<LocalDate> listReturnLoanDate = feignLoanProxy.getSoonReturned(reservation.getBookId(), HandlerToken.formatToken(accessToken));
+        System.out.println("return date empty : " + listReturnLoanDate.isEmpty());
         Integer numberOfCopies = feignBookProxy.numberOfCopyForBook(reservation.getBookId(), HandlerToken.formatToken(accessToken));
-        Reservation newResa = reservationServiceContract.save(reservation, listReturnLoanDate, numberOfCopies);
+        Integer copiesAvailable = feignBookProxy.numberOfCopyAvailableForBook(reservation.getBookId(), HandlerToken.formatToken(accessToken));
+        Reservation newResa = reservationServiceContract.save(reservation, listReturnLoanDate, numberOfCopies, copiesAvailable);
         return newResa;
     }
 
