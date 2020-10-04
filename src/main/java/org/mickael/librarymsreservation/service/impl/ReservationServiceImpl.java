@@ -1,5 +1,6 @@
 package org.mickael.librarymsreservation.service.impl;
 
+import org.apache.tomcat.jni.Local;
 import org.mickael.librarymsreservation.exception.ReservationAlreadyExistException;
 import org.mickael.librarymsreservation.exception.ReservationNotFoundException;
 import org.mickael.librarymsreservation.model.Reservation;
@@ -81,15 +82,27 @@ public class ReservationServiceImpl implements ReservationServiceContract {
         reservationToSave.setPosition(lastPosition + 1);
 
         //copies available
+        System.out.println("copie available " + copiesAvailable);
         if (copiesAvailable > 0) {
-            //soon disponibility
-            reservationToSave.setSoonDisponibilityDate(LocalDate.now());
-            //end priority
-            if ((LocalDate.now().getDayOfWeek() == DayOfWeek.FRIDAY)
-                        || (LocalDate.now().getDayOfWeek() == DayOfWeek.SATURDAY)) {
-                reservationToSave.setEndOfPriority(LocalDate.now().plusDays(3));
+            if (reservations.isEmpty()){
+                //soon disponibility
+                reservationToSave.setSoonDisponibilityDate(LocalDate.now());
+                //end priority
+                if ((LocalDate.now().getDayOfWeek() == DayOfWeek.FRIDAY)
+                            || (LocalDate.now().getDayOfWeek() == DayOfWeek.SATURDAY)) {
+                    reservationToSave.setEndOfPriority(LocalDate.now().plusDays(3));
+                } else {
+                    reservationToSave.setEndOfPriority(LocalDate.now().plusDays(2));
+                }
             } else {
-                reservationToSave.setEndOfPriority(LocalDate.now().plusDays(2));
+                reservationToSave.setSoonDisponibilityDate(reservations.get(reservations.size() - 1).getEndOfPriority());
+                //end priority
+                if ((LocalDate.now().getDayOfWeek() == DayOfWeek.FRIDAY)
+                            || (LocalDate.now().getDayOfWeek() == DayOfWeek.SATURDAY)) {
+                    reservationToSave.setEndOfPriority(reservations.get(reservations.size() - 1).getEndOfPriority().plusDays(3));
+                } else {
+                    reservationToSave.setEndOfPriority(reservations.get(reservations.size() - 1).getEndOfPriority().plusDays(2));
+                }
             }
             //send mail
             //uncomment before release
@@ -129,9 +142,9 @@ public class ReservationServiceImpl implements ReservationServiceContract {
         //send mail to reservation customer
         for (int i = 0; i < reservations.size(); i++) {
             //set end resa date
-            if ((LocalDate.now().getDayOfWeek() == DayOfWeek.SATURDAY)
-                        || (LocalDate.now().getDayOfWeek() == DayOfWeek.SUNDAY)){
-                reservations.get(i).setEndOfPriority(LocalDate.now().plusDays(4));
+            if ((LocalDate.now().getDayOfWeek() == DayOfWeek.FRIDAY)
+                        || (LocalDate.now().getDayOfWeek() == DayOfWeek.SATURDAY)) {
+                reservations.get(i).setEndOfPriority(LocalDate.now().plusDays(3));
             } else {
                 reservations.get(i).setEndOfPriority(LocalDate.now().plusDays(2));
             }
@@ -176,7 +189,9 @@ public class ReservationServiceImpl implements ReservationServiceContract {
         //modify list resa
         //get new list of all reservations for the book
         List<Reservation> reservations = reservationRepository.findAllByBookId(reservationToDelete.getBookId());
-        if (!reservations.isEmpty() && !listReturnLoanDate.isEmpty()){
+
+        //on regarde si la liste de réservation n'est pas vide sinon on ne fait rien.
+        if (!reservations.isEmpty()){
             //set last position in the reservation list
             //Integer lastPosition = reservations.size();
             Integer deleteReservationPosition = reservationToDelete.getPosition();
@@ -188,9 +203,19 @@ public class ReservationServiceImpl implements ReservationServiceContract {
                 }
             }
             reservations.sort(Comparator.comparing(Reservation::getPosition));
-            //change soon to return date
-            for (int i = 0; i < reservations.size(); i++) {
-                reservations.get(i).setSoonDisponibilityDate(listReturnLoanDate.get(i));
+
+            //no loan
+            if (listReturnLoanDate.isEmpty()){
+                for (int i = 0; i < reservations.size(); i++) {
+                    reservations.get(i).setSoonDisponibilityDate(LocalDate.now().plusDays(2*i));
+                    reservations.get(i).setEndOfPriority(LocalDate.now().plusDays(2+(2*i)));
+                }
+            //with loan
+            } else {
+                //change soon to return date
+                for (int i = 0; i < reservations.size(); i++) {
+                    reservations.get(i).setSoonDisponibilityDate(listReturnLoanDate.get(i));
+                }
             }
             reservationRepository.saveAll(reservations);
         }
