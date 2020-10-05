@@ -1,6 +1,5 @@
 package org.mickael.librarymsreservation.service.impl;
 
-import org.apache.tomcat.jni.Local;
 import org.mickael.librarymsreservation.exception.ReservationAlreadyExistException;
 import org.mickael.librarymsreservation.exception.ReservationNotFoundException;
 import org.mickael.librarymsreservation.model.Reservation;
@@ -15,7 +14,10 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 @Service
 public class ReservationServiceImpl implements ReservationServiceContract {
@@ -54,9 +56,6 @@ public class ReservationServiceImpl implements ReservationServiceContract {
         if (reservationInBdd != null){
             throw new ReservationAlreadyExistException("Vous avez déjà une réservation pour ce livre.");
         }
-        //max number of reservation
-        Integer maxRes = numberOfCopies * 2;
-
         //get all the reservation for the book to know the position in the list
         List<Reservation> reservations = reservationRepository.findAllByBookId(reservation.getBookId());
         //set last position in the reservation list
@@ -82,7 +81,6 @@ public class ReservationServiceImpl implements ReservationServiceContract {
         reservationToSave.setPosition(lastPosition + 1);
 
         //copies available
-        System.out.println("copie available " + copiesAvailable);
         if (copiesAvailable > 0) {
             if (reservations.isEmpty()){
                 //soon disponibility
@@ -134,31 +132,19 @@ public class ReservationServiceImpl implements ReservationServiceContract {
 
 
     @Override
-    public void updateResaBookId(Integer bookId, Integer numberOfCopies) {
-        //get list resa for this book
-        List<Reservation> reservations = reservationRepository.findAllByBookId(bookId);
-
-        reservations.sort(Comparator.comparing(Reservation::getPosition));
-        //send mail to reservation customer
-        for (int i = 0; i < reservations.size(); i++) {
-            //set end resa date
-            if ((LocalDate.now().getDayOfWeek() == DayOfWeek.FRIDAY)
-                        || (LocalDate.now().getDayOfWeek() == DayOfWeek.SATURDAY)) {
-                reservations.get(i).setEndOfPriority(LocalDate.now().plusDays(3));
-            } else {
-                reservations.get(i).setEndOfPriority(LocalDate.now().plusDays(2));
+    public void updateReservationsAndSendMail() {
+        List<Reservation> reservations = reservationRepository.findAll();
+        for (Reservation reservation : reservations){
+            if(reservation.getSoonDisponibilityDate().compareTo(LocalDate.now()) == 0){
+                sendPreConfiguredMail(
+                        reservation.getCustomerEmail(),
+                        reservation.getCustomerFirstname(),
+                        reservation.getCustomerLastname(),
+                        formatDateTimeToMail(reservation.getCreationReservationDate()),
+                        reservation.getBookTitle(),
+                        formatDateToMail(reservation.getEndOfPriority()));
             }
-
-            //send mail
-            sendPreConfiguredMail(
-                    reservations.get(i).getCustomerEmail(),
-                    reservations.get(i).getCustomerFirstname(),
-                    reservations.get(i).getCustomerLastname(),
-                    formatDateTimeToMail(reservations.get(i).getCreationReservationDate()),
-                    reservations.get(i).getBookTitle(),
-                    formatDateToMail(reservations.get(i).getEndOfPriority()));
         }
-
     }
 
     @Override
@@ -193,7 +179,6 @@ public class ReservationServiceImpl implements ReservationServiceContract {
         //on regarde si la liste de réservation n'est pas vide sinon on ne fait rien.
         if (!reservations.isEmpty()){
             //set last position in the reservation list
-            //Integer lastPosition = reservations.size();
             Integer deleteReservationPosition = reservationToDelete.getPosition();
 
             //change all position

@@ -6,8 +6,6 @@ import org.mickael.librarymsreservation.proxy.FeignBookProxy;
 import org.mickael.librarymsreservation.proxy.FeignLoanProxy;
 import org.mickael.librarymsreservation.service.contract.ReservationServiceContract;
 import org.mickael.librarymsreservation.utils.HandlerToken;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,8 +13,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -24,7 +20,6 @@ import java.util.List;
 @PreAuthorize("isAuthenticated()")
 public class ReservationRestController {
 
-    private static final Logger logger = LoggerFactory.getLogger(ReservationRestController.class);
     private final ReservationServiceContract reservationServiceContract;
     private final FeignLoanProxy feignLoanProxy;
     private final FeignBookProxy feignBookProxy;
@@ -38,14 +33,12 @@ public class ReservationRestController {
 
     @GetMapping
     public List<Reservation> getReservations(){
-        List<Reservation> reservations = reservationServiceContract.findAll();
-        return reservations;
+        return reservationServiceContract.findAll();
     }
 
     @GetMapping("/book/{bookId}")
     public List<Reservation> getReservationsByBookId(@PathVariable Integer bookId){
-        List<Reservation> reservations = reservationServiceContract.findAllByBookId(bookId);
-        return reservations;
+        return reservationServiceContract.findAllByBookId(bookId);
     }
 
     @GetMapping("/customer/{customerId}")
@@ -60,11 +53,9 @@ public class ReservationRestController {
     @PostMapping
     public Reservation createReservation(@RequestBody Reservation reservation, @RequestHeader("Authorization") String accessToken){
         List<LocalDate> listReturnLoanDate = feignLoanProxy.getSoonReturned(reservation.getBookId(), HandlerToken.formatToken(accessToken));
-        System.out.println("return date empty : " + listReturnLoanDate.isEmpty());
         Integer numberOfCopies = feignBookProxy.numberOfCopyForBook(reservation.getBookId(), HandlerToken.formatToken(accessToken));
         Integer copiesAvailable = feignBookProxy.numberOfCopyAvailableForBook(reservation.getBookId(), HandlerToken.formatToken(accessToken));
-        Reservation newResa = reservationServiceContract.save(reservation, listReturnLoanDate, numberOfCopies, copiesAvailable);
-        return newResa;
+        return reservationServiceContract.save(reservation, listReturnLoanDate, numberOfCopies, copiesAvailable);
     }
 
 
@@ -87,9 +78,9 @@ public class ReservationRestController {
         return reservationServiceContract.checkIfReservationExistForCustomerIdAndBookId(customerId, bookId);
     }
 
-    @PutMapping("/book/{bookId}")
-    public void updateReservation(@PathVariable Integer bookId, @RequestHeader("Authorization") String accessToken){
-        reservationServiceContract.updateResaBookId(bookId,feignBookProxy.numberOfCopyAvailableForBook(bookId, HandlerToken.formatToken(accessToken)));
+    @PutMapping
+    public void updateReservation(){
+        reservationServiceContract.updateReservationsAndSendMail();
     }
 
     @PutMapping("/book/{bookId}/refresh")

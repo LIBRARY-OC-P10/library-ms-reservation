@@ -11,7 +11,7 @@ public interface ReservationServiceContract {
     Reservation findById(Integer id);
     Reservation save(Reservation reservation, List<LocalDate> localDateList, Integer numberOfCopies, Integer copiesAvailable);
 
-    void updateResaBookId(Integer bookId, Integer numberOfCopies);
+    void updateReservationsAndSendMail();
 
     void updateDateResaBookId(Integer bookId, List<LocalDate> listReturnLoanDate);
 
