@@ -104,13 +104,13 @@ public class ReservationServiceImpl implements ReservationServiceContract {
             }
             //send mail
             //uncomment before release
-/*            sendPreConfiguredMail(
+            sendPreConfiguredMail(
                     reservationToSave.getCustomerEmail(),
                     reservationToSave.getCustomerFirstname(),
                     reservationToSave.getCustomerLastname(),
                     formatDateTimeToMail(reservationToSave.getCreationReservationDate()),
                     reservationToSave.getBookTitle(),
-                    formatDateToMail(reservationToSave.getEndOfPriority()));*/
+                    formatDateToMail(reservationToSave.getEndOfPriority()));
         } else {
             if (!listReturnLoanDate.isEmpty()){
                 //soon disponibility
