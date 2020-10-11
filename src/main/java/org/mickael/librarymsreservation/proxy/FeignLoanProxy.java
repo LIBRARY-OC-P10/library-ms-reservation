@@ -3,6 +3,7 @@ package org.mickael.librarymsreservation.proxy;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -11,5 +12,5 @@ import java.util.List;
 public interface FeignLoanProxy {
 
     @GetMapping("/api/loans/book/{bookId}/soon-returned")
-    List<LocalDate> getSoonReturned(@PathVariable("bookId") Integer bookId);
+    List<LocalDate> getSoonReturned(@PathVariable("bookId") Integer bookId, @RequestHeader("Authorization") String accessToken);
 }

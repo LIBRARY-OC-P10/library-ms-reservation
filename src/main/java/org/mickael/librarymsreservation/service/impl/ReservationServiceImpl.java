@@ -40,71 +40,119 @@ public class ReservationServiceImpl implements ReservationServiceContract {
     }
 
     @Override
-    public Reservation findById(Integer id) {
-        return null;
+    public Reservation findById(Integer reservationId) {
+        Optional<Reservation> optionalReservation = reservationRepository.findById(reservationId);
+        if (!optionalReservation.isPresent()){
+            throw new ReservationNotFoundException("Reservation not Found");
+        }
+        return optionalReservation.get();
     }
 
     @Override
-    public Reservation save(Reservation reservation, List<LocalDate> listReturnLoanDate) {
-        Reservation reservationToSave = new Reservation();
+    public Reservation save(Reservation reservation, List<LocalDate> listReturnLoanDate, Integer numberOfCopies, Integer copiesAvailable) {
 
         //check if the customer already had a reservation
         Reservation reservationInBdd = reservationRepository.findByCustomerIdAndBookId(reservation.getCustomerId(), reservation.getBookId());
-        if (!(reservationInBdd == null)){
+        if (reservationInBdd != null){
             throw new ReservationAlreadyExistException("Vous avez déjà une réservation pour ce livre.");
         }
-
         //get all the reservation for the book to know the position in the list
         List<Reservation> reservations = reservationRepository.findAllByBookId(reservation.getBookId());
-
         //set last position in the reservation list
         Integer lastPosition;
-        if (reservations.isEmpty() || (reservations == null) ){
+
+        //reservation to save
+        Reservation reservationToSave = new Reservation();
+        reservationToSave.setCreationReservationDate(LocalDateTime.now());
+        reservationToSave.setCustomerId(reservation.getCustomerId());
+        reservationToSave.setCustomerEmail(reservation.getCustomerEmail());
+        reservationToSave.setCustomerFirstname(reservation.getCustomerFirstname());
+        reservationToSave.setCustomerLastname(reservation.getCustomerLastname());
+        reservationToSave.setBookId(reservation.getBookId());
+        reservationToSave.setBookTitle(reservation.getBookTitle());
+
+        //no reservation
+        if (reservations.isEmpty()) {
             lastPosition = 0;
         } else {
             lastPosition = reservations.size();
         }
 
-        reservationToSave.setCreationReservationDate(LocalDateTime.now());
-        reservationToSave.setBookId(reservation.getBookId());
-        reservationToSave.setCustomerId(reservation.getCustomerId());
         reservationToSave.setPosition(lastPosition + 1);
-        reservationToSave.setSoonDisponibilityDate(listReturnLoanDate.get(lastPosition));
 
+        //copies available
+        if (copiesAvailable > 0) {
+            if (reservations.isEmpty()){
+                //soon disponibility
+                reservationToSave.setSoonDisponibilityDate(LocalDate.now());
+                //end priority
+                if ((LocalDate.now().getDayOfWeek() == DayOfWeek.FRIDAY)
+                            || (LocalDate.now().getDayOfWeek() == DayOfWeek.SATURDAY)) {
+                    reservationToSave.setEndOfPriority(LocalDate.now().plusDays(3));
+                } else {
+                    reservationToSave.setEndOfPriority(LocalDate.now().plusDays(2));
+                }
+            } else {
+                reservationToSave.setSoonDisponibilityDate(reservations.get(reservations.size() - 1).getEndOfPriority());
+                //end priority
+                if ((LocalDate.now().getDayOfWeek() == DayOfWeek.FRIDAY)
+                            || (LocalDate.now().getDayOfWeek() == DayOfWeek.SATURDAY)) {
+                    reservationToSave.setEndOfPriority(reservations.get(reservations.size() - 1).getEndOfPriority().plusDays(3));
+                } else {
+                    reservationToSave.setEndOfPriority(reservations.get(reservations.size() - 1).getEndOfPriority().plusDays(2));
+                }
+            }
+            //send mail
+            //uncomment before release
+/*            sendPreConfiguredMail(
+                    reservationToSave.getCustomerEmail(),
+                    reservationToSave.getCustomerFirstname(),
+                    reservationToSave.getCustomerLastname(),
+                    formatDateTimeToMail(reservationToSave.getCreationReservationDate()),
+                    reservationToSave.getBookTitle(),
+                    formatDateToMail(reservationToSave.getEndOfPriority()));*/
+        } else {
+            if (!listReturnLoanDate.isEmpty()){
+                //soon disponibility
+                if (lastPosition == 0){
+                    reservationToSave.setSoonDisponibilityDate(listReturnLoanDate.get(lastPosition));
+                    reservationToSave.setEndOfPriority(listReturnLoanDate.get(lastPosition).plusDays(2));
+                } else {
+                    reservationToSave.setSoonDisponibilityDate(listReturnLoanDate.get(lastPosition - 1));
+                    //end priority A VOIR
+                    reservationToSave.setEndOfPriority(listReturnLoanDate.get(lastPosition - 1).plusDays(2));
+                }
+            } else {
+                throw new ReservationNotFoundException("Reservation impossible. Contactez la bibliothèque. Merci.");
+            }
+        }
         return reservationRepository.save(reservationToSave);
     }
 
 
 
     @Override
-    public void updateResaBookId(Integer bookId, Integer numberOfCopies) {
-        //get list resa for this book
-        List<Reservation> reservations = reservationRepository.findAllByBookId(bookId);
-        reservations.sort(Comparator.comparing(Reservation::getPosition));
-        //send mail to reservation customer
-        for (int i = 0; i < numberOfCopies; i++) {
-            //set end resa date
-            if ((LocalDate.now().getDayOfWeek() == DayOfWeek.SATURDAY)
-                        || (LocalDate.now().getDayOfWeek() == DayOfWeek.SUNDAY)){
-                reservations.get(i).setEndOfPriority(LocalDate.now().plusDays(4));
-            } else {
-                reservations.get(i).setEndOfPriority(LocalDate.now().plusDays(2));
+    public void updateReservationsAndSendMail() {
+        List<Reservation> reservations = reservationRepository.findAll();
+        for (Reservation reservation : reservations){
+            if(reservation.getSoonDisponibilityDate().compareTo(LocalDate.now()) == 0){
+                sendPreConfiguredMail(
+                        reservation.getCustomerEmail(),
+                        reservation.getCustomerFirstname(),
+                        reservation.getCustomerLastname(),
+                        formatDateTimeToMail(reservation.getCreationReservationDate()),
+                        reservation.getBookTitle(),
+                        formatDateToMail(reservation.getEndOfPriority()));
             }
-
-            //send mail
-            sendPreConfiguredMail(
-                    reservations.get(i).getCustomerEmail(),
-                    reservations.get(i).getCustomerFirstname(),
-                    reservations.get(i).getCustomerLastname(),
-                    formatDateTimeToMail(reservations.get(i).getCreationReservationDate()),
-                    reservations.get(i).getBookTitle(),
-                    formatDateToMail(reservations.get(i).getEndOfPriority()));
         }
     }
 
     @Override
     public void updateDateResaBookId(Integer bookId, List<LocalDate> listReturnLoanDate) {
         List<Reservation> reservations = reservationRepository.findAllByBookId(bookId);
+        if (reservations.isEmpty()){
+            return;
+        }
         reservations.sort(Comparator.comparing(Reservation::getPosition));
         //change soon to return date
         for (int i = 0; i < reservations.size(); i++) {
@@ -113,8 +161,8 @@ public class ReservationServiceImpl implements ReservationServiceContract {
     }
 
     @Override
-    public void delete(Integer id, List<LocalDate> listReturnLoanDate) {
-        Optional<Reservation> optionalReservation = reservationRepository.findById(id);
+    public void delete(Integer reservationId, List<LocalDate> listReturnLoanDate) {
+        Optional<Reservation> optionalReservation = reservationRepository.findById(reservationId);
         if (!optionalReservation.isPresent()){
             throw new ReservationNotFoundException("Reservation not Found");
         }
@@ -122,34 +170,50 @@ public class ReservationServiceImpl implements ReservationServiceContract {
         Reservation reservationToDelete = optionalReservation.get();
 
         //delete
-        reservationRepository.deleteById(id);
+        reservationRepository.deleteById(reservationId);
 
         //modify list resa
         //get new list of all reservations for the book
         List<Reservation> reservations = reservationRepository.findAllByBookId(reservationToDelete.getBookId());
 
-        //set last position in the reservation list
-        //Integer lastPosition = reservations.size();
-        Integer deleteReservationPosition = reservationToDelete.getPosition();
+        //on regarde si la liste de réservation n'est pas vide sinon on ne fait rien.
+        if (!reservations.isEmpty()){
+            //set last position in the reservation list
+            Integer deleteReservationPosition = reservationToDelete.getPosition();
 
-        //change all position
-        for (Reservation reservation : reservations){
-            if (reservation.getPosition() > deleteReservationPosition){
-                reservation.setPosition(reservation.getPosition() - 1);
+            //change all position
+            for (Reservation reservation : reservations){
+                if (reservation.getPosition() > deleteReservationPosition){
+                    reservation.setPosition(reservation.getPosition() - 1);
+                }
             }
-        }
-        reservations.sort(Comparator.comparing(Reservation::getPosition));
-        //change soon to return date
-        for (int i = 0; i < reservations.size(); i++) {
-            reservations.get(i).setSoonDisponibilityDate(listReturnLoanDate.get(i));
-        }
-        reservationRepository.saveAll(reservations);
+            reservations.sort(Comparator.comparing(Reservation::getPosition));
 
+            //no loan
+            if (listReturnLoanDate.isEmpty()){
+                for (int i = 0; i < reservations.size(); i++) {
+                    reservations.get(i).setSoonDisponibilityDate(LocalDate.now().plusDays(2*i));
+                    reservations.get(i).setEndOfPriority(LocalDate.now().plusDays(2+(2*i)));
+                }
+            //with loan
+            } else {
+                //change soon to return date
+                for (int i = 0; i < reservations.size(); i++) {
+                    reservations.get(i).setSoonDisponibilityDate(listReturnLoanDate.get(i));
+                }
+            }
+            reservationRepository.saveAll(reservations);
+        }
     }
 
     @Override
     public List<Reservation> findAllByCustomerId(Integer customerId) {
         return reservationRepository.findAllByCustomerId(customerId);
+    }
+
+    @Override
+    public List<Reservation> findAllByBookId(Integer bookId) {
+        return reservationRepository.findAllByBookId(bookId);
     }
 
 
