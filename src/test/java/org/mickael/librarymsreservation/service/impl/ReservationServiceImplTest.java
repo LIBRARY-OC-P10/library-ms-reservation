@@ -24,7 +24,6 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.notNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
@@ -157,7 +156,7 @@ class ReservationServiceImplTest {
     void itShouldSaveReservationWhenNoBookDisponibilityAndOneReservation(){
         //Given
         List<LocalDate> listReturnLoanDate = new ArrayList<>();
-        listReturnLoanDate.add(LocalDate.of(2020, 10, 01));
+        listReturnLoanDate.add(LocalDate.of(2020, 10, 1));
 
         Integer numberOfCopies = 2;
         Integer copiesAvailable = 0;
@@ -204,7 +203,7 @@ class ReservationServiceImplTest {
     void itShouldSaveReservationWhenNoBookDisponibilityAndNoReservation(){
         //Given
         List<LocalDate> listReturnLoanDate = new ArrayList<>();
-        listReturnLoanDate.add(LocalDate.of(2020, 10, 01));
+        listReturnLoanDate.add(LocalDate.of(2020, 10, 1));
 
         Integer numberOfCopies = 2;
         Integer copiesAvailable = 0;
@@ -251,7 +250,7 @@ class ReservationServiceImplTest {
     void itShouldThrowReservationAlreadyExistException(){
         //Given
         List<LocalDate> listReturnLoanDate = new ArrayList<>();
-        listReturnLoanDate.add(LocalDate.of(2020, 10, 01));
+        listReturnLoanDate.add(LocalDate.of(2020, 10, 1));
 
         Integer numberOfCopies = 2;
         Integer copiesAvailable = 0;
@@ -454,56 +453,14 @@ class ReservationServiceImplTest {
         reservation.setBookId(bookId);
         reservation.setBookTitle(bookTitle);
 
-        Integer customerId2 = 3;
-        String customerFirstName2 = "mickael";
-        String customerLastName2 = "coz" ;
-        String customerEmail2 = "coz.mickael@gmail.com";
         Reservation reservation2 = new Reservation();
-        reservation2.setId(reservationId);
-        reservation2.setCreationReservationDate(LocalDateTime.now());
-        reservation2.setEndOfPriority(LocalDate.now().plusDays(2));
-        reservation2.setSoonDisponibilityDate(LocalDate.now());
         reservation2.setPosition(2);
-        reservation2.setCustomerId(customerId);
-        reservation2.setCustomerLastname(customerLastName);
-        reservation2.setCustomerFirstname(customerFirstName);
-        reservation2.setCustomerEmail(customerEmail);
-        reservation2.setBookId(bookId);
-        reservation2.setBookTitle(bookTitle);
 
-        Integer customerId3 = 4;
-        String customerFirstName3 = "mickael";
-        String customerLastName3 = "coz" ;
-        String customerEmail3 = "coz.mickael@gmail.com";
         Reservation reservation3 = new Reservation();
-        reservation3.setId(reservationId);
-        reservation3.setCreationReservationDate(LocalDateTime.now());
-        reservation3.setEndOfPriority(LocalDate.now().plusDays(2));
-        reservation3.setSoonDisponibilityDate(LocalDate.now());
         reservation3.setPosition(3);
-        reservation3.setCustomerId(customerId);
-        reservation3.setCustomerLastname(customerLastName);
-        reservation3.setCustomerFirstname(customerFirstName);
-        reservation3.setCustomerEmail(customerEmail);
-        reservation3.setBookId(bookId);
-        reservation3.setBookTitle(bookTitle);
 
-        Integer customerId4 = 5;
-        String customerFirstName4 = "mickael";
-        String customerLastName4 = "coz" ;
-        String customerEmail4 = "coz.mickael@gmail.com";
         Reservation reservation4 = new Reservation();
-        reservation4.setId(reservationId);
-        reservation4.setCreationReservationDate(LocalDateTime.now());
-        reservation4.setEndOfPriority(LocalDate.now().plusDays(2));
-        reservation4.setSoonDisponibilityDate(LocalDate.now());
-        reservation4.setPosition(1);
-        reservation4.setCustomerId(customerId);
-        reservation4.setCustomerLastname(customerLastName);
-        reservation4.setCustomerFirstname(customerFirstName);
-        reservation4.setCustomerEmail(customerEmail);
-        reservation4.setBookId(bookId);
-        reservation4.setBookTitle(bookTitle);
+        reservation4.setPosition(4);
 
         List<Reservation> reservations = new ArrayList<>();
         reservations.add(reservation2);
@@ -517,5 +474,7 @@ class ReservationServiceImplTest {
 
         //Then
         assertThat(reservation2.getPosition()).isEqualTo(1);
+        assertThat(reservation3.getPosition()).isEqualTo(2);
+        assertThat(reservation4.getPosition()).isEqualTo(3);
     }
 }
