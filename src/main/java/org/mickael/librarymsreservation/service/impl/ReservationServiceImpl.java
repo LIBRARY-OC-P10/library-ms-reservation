@@ -1,6 +1,7 @@
 package org.mickael.librarymsreservation.service.impl;
 
 import org.mickael.librarymsreservation.exception.ReservationAlreadyExistException;
+import org.mickael.librarymsreservation.exception.ReservationNotAllowedException;
 import org.mickael.librarymsreservation.exception.ReservationNotFoundException;
 import org.mickael.librarymsreservation.model.Reservation;
 import org.mickael.librarymsreservation.repository.ReservationRepository;
@@ -127,7 +128,7 @@ public class ReservationServiceImpl implements ReservationServiceContract {
                     reservationToSave.setEndOfPriority(listReturnLoanDate.get(lastPosition - 1).plusDays(2));
                 }
             } else {
-                throw new ReservationNotFoundException(RESERVATION_NOT_ALLOWED_MSG);
+                throw new ReservationNotAllowedException(RESERVATION_NOT_ALLOWED_MSG);
             }
         }
         return reservationRepository.save(reservationToSave);
