@@ -129,6 +129,7 @@
 						<exclude>org/mickael/librarymsreservation/controller/*.class</exclude>
 						<exclude>org/mickael/librarymsreservation/exception/*.class</exclude>
 						<exclude>org/mickael/librarymsreservation/security/*.class</exclude>
+						<exclude>org/mickael/librarymsreservation/utils/*.class</exclude>
 					</excludes>
 				</configuration>
 				<executions>

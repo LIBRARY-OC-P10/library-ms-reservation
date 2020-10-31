@@ -13,4 +13,8 @@ public interface FeignLoanProxy {
 
     @GetMapping("/api/loans/book/{bookId}/soon-returned")
     List<LocalDate> getSoonReturned(@PathVariable("bookId") Integer bookId, @RequestHeader("Authorization") String accessToken);
+
+    @GetMapping("/api/loans/customer/{customerId}/book/{bookId}")
+    boolean checkIfLoanExistForCustomerIdAndBookId(@PathVariable("customerId") Integer customerId, @PathVariable("bookId") Integer bookId, @RequestHeader("Authorization") String accessToken);
+
 }

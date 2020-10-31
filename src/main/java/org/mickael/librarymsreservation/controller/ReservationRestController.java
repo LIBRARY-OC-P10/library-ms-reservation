@@ -36,6 +36,11 @@ public class ReservationRestController {
         return reservationServiceContract.findAll();
     }
 
+    @GetMapping("/{id}")
+    public Reservation getReservation(@PathVariable Integer id){
+        return reservationServiceContract.findById(id);
+    }
+
     @GetMapping("/book/{bookId}")
     public List<Reservation> getReservationsByBookId(@PathVariable Integer bookId){
         return reservationServiceContract.findAllByBookId(bookId);
@@ -51,11 +56,16 @@ public class ReservationRestController {
     }
 
     @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
     public Reservation createReservation(@RequestBody Reservation reservation, @RequestHeader("Authorization") String accessToken){
         List<LocalDate> listReturnLoanDate = feignLoanProxy.getSoonReturned(reservation.getBookId(), HandlerToken.formatToken(accessToken));
         Integer numberOfCopies = feignBookProxy.numberOfCopyForBook(reservation.getBookId(), HandlerToken.formatToken(accessToken));
         Integer copiesAvailable = feignBookProxy.numberOfCopyAvailableForBook(reservation.getBookId(), HandlerToken.formatToken(accessToken));
-        return reservationServiceContract.save(reservation, listReturnLoanDate, numberOfCopies, copiesAvailable);
+        if (feignLoanProxy.checkIfLoanExistForCustomerIdAndBookId(reservation.getCustomerId(), reservation.getBookId(), HandlerToken.formatToken(accessToken))){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Reservation not allowed, loan ongoing");
+        } else {
+            return reservationServiceContract.save(reservation, listReturnLoanDate, numberOfCopies, copiesAvailable);
+        }
     }
 
 
