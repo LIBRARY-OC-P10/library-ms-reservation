@@ -1,6 +1,7 @@
 package org.mickael.librarymsreservation.service.impl;
 
 import org.mickael.librarymsreservation.exception.ReservationAlreadyExistException;
+import org.mickael.librarymsreservation.exception.ReservationNotAllowedException;
 import org.mickael.librarymsreservation.exception.ReservationNotFoundException;
 import org.mickael.librarymsreservation.model.Reservation;
 import org.mickael.librarymsreservation.repository.ReservationRepository;
@@ -26,6 +27,10 @@ public class ReservationServiceImpl implements ReservationServiceContract {
     private JavaMailSender javaMailSender;
     private SimpleMailMessage preConfiguredMessage;
 
+    private static final String NOT_FOUND_MSG = "Reservation not Found in repository";
+    private static final String RESERVATION_NOT_ALLOWED_MSG = "Reservation impossible. Contactez la bibliothèque. Merci.";
+    private static final String ALREADY_RESERVED_MSG = "Vous avez déjà une réservation pour ce livre.";
+
     @Autowired
     public ReservationServiceImpl(ReservationRepository reservationRepository, JavaMailSender javaMailSender, SimpleMailMessage preConfiguredMessage) {
         this.reservationRepository = reservationRepository;
@@ -43,7 +48,7 @@ public class ReservationServiceImpl implements ReservationServiceContract {
     public Reservation findById(Integer reservationId) {
         Optional<Reservation> optionalReservation = reservationRepository.findById(reservationId);
         if (!optionalReservation.isPresent()){
-            throw new ReservationNotFoundException("Reservation not Found");
+            throw new ReservationNotFoundException(NOT_FOUND_MSG);
         }
         return optionalReservation.get();
     }
@@ -54,7 +59,7 @@ public class ReservationServiceImpl implements ReservationServiceContract {
         //check if the customer already had a reservation
         Reservation reservationInBdd = reservationRepository.findByCustomerIdAndBookId(reservation.getCustomerId(), reservation.getBookId());
         if (reservationInBdd != null){
-            throw new ReservationAlreadyExistException("Vous avez déjà une réservation pour ce livre.");
+            throw new ReservationAlreadyExistException(ALREADY_RESERVED_MSG);
         }
         //get all the reservation for the book to know the position in the list
         List<Reservation> reservations = reservationRepository.findAllByBookId(reservation.getBookId());
@@ -123,7 +128,7 @@ public class ReservationServiceImpl implements ReservationServiceContract {
                     reservationToSave.setEndOfPriority(listReturnLoanDate.get(lastPosition - 1).plusDays(2));
                 }
             } else {
-                throw new ReservationNotFoundException("Reservation impossible. Contactez la bibliothèque. Merci.");
+                throw new ReservationNotAllowedException(RESERVATION_NOT_ALLOWED_MSG);
             }
         }
         return reservationRepository.save(reservationToSave);
@@ -164,7 +169,7 @@ public class ReservationServiceImpl implements ReservationServiceContract {
     public void delete(Integer reservationId, List<LocalDate> listReturnLoanDate) {
         Optional<Reservation> optionalReservation = reservationRepository.findById(reservationId);
         if (!optionalReservation.isPresent()){
-            throw new ReservationNotFoundException("Reservation not Found");
+            throw new ReservationNotFoundException(NOT_FOUND_MSG);
         }
         //get resa
         Reservation reservationToDelete = optionalReservation.get();
@@ -226,7 +231,7 @@ public class ReservationServiceImpl implements ReservationServiceContract {
     public Reservation findByCustomerIdAndBookId(Integer customerId, Integer bookId) {
         Reservation reservation = reservationRepository.findByCustomerIdAndBookId(customerId, bookId);
         if (reservation == null){
-            throw new ReservationNotFoundException("No reservation for this customer and book");
+            throw new ReservationNotFoundException(NOT_FOUND_MSG);
         }
         return reservation;
     }
